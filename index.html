@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programma 1: Registro Master Fasi e Ordini di Lavoro</title>
+   
+    <style>
+        /* === STILI GENERALI === */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        h1 { color: #3f51b5; text-align: center; margin-bottom: 20px; }
+       
+        /* Form e Pulsanti */
+        .form-col { padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { font-weight: bold; margin-bottom: 5px; display: block; }
+        .form-group input, .form-group select { padding: 8px; border: 1px solid #ccc; border-radius: 3px; width: 100%; box-sizing: border-box; }
+       
+        .btn-main { background-color: #4CAF50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; width: 100%; margin-top: 15px; }
+        .btn-main:hover { background-color: #45a049; }
+
+        /* Viste Lista */
+        .lista-fasi-temp { margin-top: 15px; padding: 10px; border: 1px dashed #bbb; border-radius: 4px; min-height: 50px; background-color: #fafafa; }
+        .fase-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; margin-bottom: 5px; background-color: #e3f2fd; border-radius: 3px; font-size: 14px; }
+        .btn-elimina-fase { background: none; border: none; color: #d32f2f; cursor: pointer; font-weight: bold; padding: 3px 8px; border-radius: 3px; }
+       
+        /* CLASSI DI COLORE (10 totali) */
+        .fase-item .colore-anteprima { width: 15px; height: 15px; border-radius: 3px; margin-right: 5px; border: 1px solid #333; }
+        .colore-anteprima-task-fase-1 { background-color: #00bcd4; } /* Ciano */
+        .colore-anteprima-task-fase-2 { background-color: #ff9800; } /* Arancione */
+        .colore-anteprima-task-fase-3 { background-color: #4caf50; } /* Verde */
+        .colore-anteprima-task-fase-4 { background-color: #9c27b0; } /* Viola */
+        .colore-anteprima-task-fase-5 { background-color: #f44336; } /* Rosso */
+        .colore-anteprima-task-fase-6 { background-color: #ffeb3b; } /* Giallo */
+        .colore-anteprima-task-fase-7 { background-color: #795548; } /* Marrone */
+        .colore-anteprima-task-fase-8 { background-color: #03a9f4; } /* Blu Chiaro */
+        .colore-anteprima-task-fase-9 { background-color: #e91e63; } /* Rosa */
+        .colore-anteprima-task-fase-10 { background-color: #607d8b; } /* Grigio Blu */
+       
+        /* Stili per la sezione Ordine di Lavoro */
+        .odl-col { display: flex; gap: 20px; }
+        .odl-form { flex: 1; }
+        .odl-list { flex: 2; }
+        #lista_odl_table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        #lista_odl_table th, #lista_odl_table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+        #lista_odl_table th { background-color: #e0e0e0; }
+        .fase-odl-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px dotted #ccc; font-size: 13px; }
+        .odl-fase-tempo { font-weight: bold; color: #3f51b5; }
+        .odl-table-actions { text-align: center; width: 60px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Programma 1: Registro Master Fasi e Ordini di Lavoro</h1>
+        <hr>
+
+        <div class="form-col">
+            <h3>Ordine di Lavoro (OdL) & Articoli</h3>
+            <div class="odl-col">
+               
+                <div class="odl-form">
+                    <div class="form-group">
+                        <label for="odl_articolo_id">Codice Articolo:</label>
+                        <input type="text" id="odl_articolo_id" placeholder="Es. PROD-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="odl_descrizione">Descrizione Articolo:</label>
+                        <input type="text" id="odl_descrizione" placeholder="Es. Telaio in Alluminio">
+                    </div>
+                   
+                    <h4>Aggiungi Fasi all'Articolo:</h4>
+                    <div class="form-group">
+                        <label for="odl_fase_select">Fase Standard:</label>
+                        <select id="odl_fase_select">
+                            </select>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label for="odl_tempo_min">Tempo Standard (minuti):</label>
+                            <input type="number" id="odl_tempo_min" value="60" min="5">
+                        </div>
+                        <button type="button" class="btn-main" id="btn_aggiungi_fase_odl" style="width: auto; margin-top: 24px;">+</button>
+                    </div>
+
+                    <div id="odl_fasi_temporanee" class="lista-fasi-temp">
+                        Nessuna fase aggiunta.
+                    </div>
+                   
+                    <button id="btn_salva_odl" class="btn-main" style="background-color: #d84315;">Salva Nuovo Articolo/OdL</button>
+                </div>
+               
+                <div class="odl-list">
+                    <h4>Articoli/OdL Esistenti:</h4>
+                    <table id="lista_odl_table">
+                        <thead>
+                            <tr>
+                                <th>Codice</th>
+                                <th>Descrizione</th>
+                                <th>Fasi e Tempi</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="form-col">
+            <h3>Fasi di Lavorazione Standard (Master)</h3>
+            <div style="display: flex; gap: 10px; align-items: end;">
+                <div class="form-group" style="flex: 2;">
+                    <label for="nuova_fase_nome">Nome Fase:</label>
+                    <input type="text" id="nuova_fase_nome" placeholder="Es. Saldatura Cornici">
+                </div>
+                 <div class="form-group" style="flex: 1;">
+                    <label for="nuova_fase_colore">Seleziona Colore:</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <select id="nuova_fase_colore" style="flex-grow: 1;">
+                            <option value="task-fase-1">Ciano</option>
+                            <option value="task-fase-2">Arancione</option>
+                            <option value="task-fase-3">Verde</option>
+                            <option value="task-fase-4">Viola</option>
+                            <option value="task-fase-5">Rosso</option>
+                            <option value="task-fase-6">Giallo</option>
+                            <option value="task-fase-7">Marrone</option>
+                            <option value="task-fase-8">Blu Chiaro</option>
+                            <option value="task-fase-9">Rosa</option>
+                            <option value="task-fase-10">Grigio Blu</option>
+                        </select>
+                        <div id="anteprima_colore" style="width: 20px; height: 20px; border-radius: 3px; border: 1px solid #ccc;"></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-main" id="btn_aggiungi_fase_standard" style="width: auto; height: 36px;">+</button>
+            </div>
+
+            <label style="margin-top: 10px;">Fasi Standard definite:</label>
+            <div id="lista_fasi_standard" class="lista-fasi-temp">
+            </div>
+           
+            <button id="btn_salva_dati" class="btn-main">Salva Dati Master (Postazioni & Fasi)</button>
+        </div>
+
+        <hr>
+       
+        <div class="form-col">
+            <h3>Postazioni di Lavoro Fisse</h3>
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <input type="text" id="nuova_postazione_input" placeholder="Es. B5 - Fresatrice CNC" style="flex-grow: 1;">
+                <button type="button" class="btn-main" id="btn_aggiungi_postazione" style="width: auto;">Aggiungi Postazione</button>
+            </div>
+            <ul id="lista_postazioni">
+                </ul>
+        </div>
+
+        <button id="btn_vai_a_griglia" class="btn-main" style="background-color: #3f51b5; margin-top: 10px;">
+            Vai alla Griglia di Pianificazione (Programma 2)
+        </button>
+    </div>
+
+    <script>
+        // --- CHIAVI LOCALSTORAGE ---
+        const CHIAVE_FASI = 'registroMasterFasi';
+        const CHIAVE_POSTAZIONI = 'registroMasterPostazioni';
+        const CHIAVE_ODL = 'registroOrdiniDiLavoro';
+
+        let fasiStandard = [];
+        let postazioniFisse = [];
+        let ordiniDiLavoro = [];
+        let fasiTemporaneeOdL = [];
+
+        // --- GESTIONE LOCALSTORAGE ---
+        function caricaDati() {
+            try {
+                const fasiJson = localStorage.getItem(CHIAVE_FASI);
+                fasiStandard = fasiJson ? JSON.parse(fasiJson) : [{ id: 'TAGLIO', name: "Taglio Laser", class: "task-fase-1" }];
+
+                const postazioniJson = localStorage.getItem(CHIAVE_POSTAZIONI);
+                postazioniFisse = postazioniJson ? JSON.parse(postazioniJson) : ["A1 - Default"];
+
+                const odlJson = localStorage.getItem(CHIAVE_ODL);
+                ordiniDiLavoro = odlJson ? JSON.parse(odlJson) : [];
+
+            } catch (e) {
+                console.error("Errore nel caricamento dei dati da localStorage:", e);
+                fasiStandard = []; postazioniFisse = []; ordiniDiLavoro = [];
+            }
+        }
+
+        function salvaDati() {
+            try {
+                localStorage.setItem(CHIAVE_FASI, JSON.stringify(fasiStandard));
+                localStorage.setItem(CHIAVE_POSTAZIONI, JSON.stringify(postazioniFisse));
+                localStorage.setItem(CHIAVE_ODL, JSON.stringify(ordiniDiLavoro));
+                alert("Dati Master (Postazioni, Fasi e OdL) salvati con successo!");
+            } catch (e) {
+                alert("Errore nel salvataggio dei dati in localStorage.");
+                console.error(e);
+            }
+        }
+
+        // --- GESTIONE ODL ---
+        function aggiungiFaseOdL() {
+            const selectFase = document.getElementById('odl_fase_select');
+            const tempoInput = document.getElementById('odl_tempo_min');
+           
+            const faseId = selectFase.value;
+            const tempo = parseInt(tempoInput.value);
+
+            if (!faseId || isNaN(tempo) || tempo <= 0) {
+                alert("Seleziona una fase e inserisci un tempo valido (minuti > 0).");
+                return;
+            }
+
+            const faseStandard = fasiStandard.find(f => f.id === faseId);
+           
+            fasiTemporaneeOdL.push({
+                id: faseStandard.id,
+                name: faseStandard.name,
+                class: faseStandard.class,
+                tempo: tempo
+            });
+
+            tempoInput.value = 60;
+            rendiFasiTemporaneeOdL();
+        }
+
+        function rendiFasiTemporaneeOdL() {
+            const lista = document.getElementById('odl_fasi_temporanee');
+            lista.innerHTML = '';
+           
+            if (fasiTemporaneeOdL.length === 0) {
+                 lista.textContent = "Nessuna fase aggiunta."; lista.style.fontStyle = 'italic'; return;
+            }
+            lista.style.fontStyle = 'normal';
+
+            fasiTemporaneeOdL.forEach((fase, index) => {
+                const div = document.createElement('div');
+                div.classList.add('fase-odl-item');
+                div.innerHTML = `
+                    <span>${index + 1}. ${fase.name}</span>
+                    <span class="odl-fase-tempo">${fase.tempo} min</span>
+                    <button class="btn-elimina-fase" data-index="${index}">🗑️</button>
+                `;
+                lista.appendChild(div);
+            });
+           
+            lista.querySelectorAll('.btn-elimina-fase').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    fasiTemporaneeOdL.splice(parseInt(e.currentTarget.dataset.index), 1);
+                    rendiFasiTemporaneeOdL();
+                });
+            });
+        }
+
+        function popolaSelectFasiOdL() {
+            const select = document.getElementById('odl_fase_select');
+            select.innerHTML = '';
+            fasiStandard.forEach(fase => {
+                const option = document.createElement('option');
+                option.value = fase.id;
+                option.textContent = fase.name;
+                select.appendChild(option);
+            });
+        }
+
+        function salvaOrdineDiLavoro() {
+            const idInput = document.getElementById('odl_articolo_id');
+            const descInput = document.getElementById('odl_descrizione');
+           
+            const id = idInput.value.trim().toUpperCase();
+            const desc = descInput.value.trim();
+
+            if (!id || !desc || fasiTemporaneeOdL.length === 0) {
+                alert("Inserisci Codice Articolo, Descrizione e almeno una Fase con Tempo.");
+                return;
+            }
+            if (ordiniDiLavoro.some(o => o.id === id)) {
+                alert(`L'articolo con codice ${id} esiste già.`);
+                return;
+            }
+
+            ordiniDiLavoro.push({
+                id: id,
+                desc: desc,
+                fasi: [...fasiTemporaneeOdL]
+            });
+
+            idInput.value = '';
+            descInput.value = '';
+            fasiTemporaneeOdL = [];
+            rendiFasiTemporaneeOdL();
+            rendiOrdiniDiLavoro();
+            salvaDati();
+        }
+
+        function rendiOrdiniDiLavoro() {
+            const tbody = document.querySelector('#lista_odl_table tbody');
+            tbody.innerHTML = '';
+
+            if (ordiniDiLavoro.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 4;
+                cell.textContent = "Nessun Ordine di Lavoro registrato.";
+                cell.style.textAlign = 'center';
+                return;
+            }
+           
+            ordiniDiLavoro.forEach((odl, index) => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = odl.id;
+                row.insertCell().textContent = odl.desc;
+               
+                const fasiCell = row.insertCell();
+                odl.fasi.forEach(fase => {
+                    const div = document.createElement('div');
+                    div.textContent = `${fase.name} (${fase.tempo} min)`;
+                    fasiCell.appendChild(div);
+                });
+               
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('odl-table-actions');
+                const btnElimina = document.createElement('button');
+                btnElimina.textContent = '🗑️';
+                btnElimina.classList.add('btn-elimina-fase');
+                btnElimina.dataset.index = index;
+                btnElimina.addEventListener('click', (e) => {
+                    if (confirm(`Sei sicuro di voler eliminare l'Ordine di Lavoro ${odl.id}?`)) {
+                        ordiniDiLavoro.splice(parseInt(e.currentTarget.dataset.index), 1);
+                        rendiOrdiniDiLavoro();
+                        salvaDati();
+                    }
+                });
+                actionsCell.appendChild(btnElimina);
+            });
+        }
+
+
+        // --- GESTIONE FASI STANDARD ---
+        function aggiungiFaseStandard() {
+            const nomeInput = document.getElementById('nuova_fase_nome');
+            const coloreSelect = document.getElementById('nuova_fase_colore');
+
+            const nome = nomeInput.value.trim();
+            const classeColore = coloreSelect.value;
+
+            if (!nome) {
+                alert("Inserisci un nome per la fase.");
+                return;
+            }
+
+            fasiStandard.push({
+                id: nome.toUpperCase().replace(/\s/g, '_').substring(0, 10),
+                name: nome,
+                class: classeColore
+            });
+
+            nomeInput.value = '';
+            coloreSelect.value = 'task-fase-1';
+            aggiornaAnteprimaColore();
+            rendiFasiStandard();
+            popolaSelectFasiOdL();
+        }
+
+        function rendiFasiStandard() {
+             const lista = document.getElementById('lista_fasi_standard');
+            lista.innerHTML = '';
+           
+            if (fasiStandard.length === 0) {
+                lista.textContent = "Nessuna fase standard definita."; lista.style.fontStyle = 'italic'; return;
+            }
+            lista.style.fontStyle = 'normal';
+
+            fasiStandard.forEach((fase, index) => {
+                const div = document.createElement('div');
+                div.classList.add('fase-item');
+               
+                const coloreDiv = document.createElement('div');
+                coloreDiv.classList.add('colore-anteprima', `colore-anteprima-${fase.class}`);
+
+                div.innerHTML = `
+                    <span><strong>${fase.name}</strong></span>
+                    <span>Classe: ${fase.class}</span>
+                    <button class="btn-elimina-fase" data-index="${index}" style="border: 1px solid #d32f2f;">🗑️</button>
+                `;
+               
+                const spanNome = div.querySelector('span:first-child');
+                spanNome.insertBefore(coloreDiv, spanNome.firstChild);
+
+                lista.appendChild(div);
+            });
+           
+            lista.querySelectorAll('.btn-elimina-fase').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    fasiStandard.splice(parseInt(e.currentTarget.dataset.index), 1);
+                    rendiFasiStandard();
+                    popolaSelectFasiOdL();
+                    salvaDati();
+                });
+            });
+        }
+       
+        function aggiornaAnteprimaColore() {
+            const select = document.getElementById('nuova_fase_colore');
+            const anteprima = document.getElementById('anteprima_colore');
+            const classeSelezionata = select.value;
+           
+            anteprima.className = '';
+            anteprima.classList.add(`colore-anteprima-${classeSelezionata}`);
+        }
+
+        // --- GESTIONE POSTAZIONI ---
+        function aggiungiPostazione() {
+            const input = document.getElementById('nuova_postazione_input');
+            const nome = input.value.trim();
+           
+            if (!nome) { alert("Inserisci un nome per la postazione."); return; }
+            if (postazioniFisse.includes(nome)) { alert("Questa postazione esiste già."); return; }
+
+            postazioniFisse.push(nome);
+            input.value = '';
+            rendiPostazioni();
+        }
+
+        function rendiPostazioni() {
+             const lista = document.getElementById('lista_postazioni');
+            lista.innerHTML = '';
+
+            if (postazioniFisse.length === 0) {
+                lista.innerHTML = '<li>Nessuna postazione definita.</li>'; return;
+            }
+
+            postazioniFisse.forEach((postazione, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${postazione}
+                    <button class="btn-elimina-fase" data-index="${index}" style="float: right;">🗑️</button>
+                `;
+                lista.appendChild(li);
+            });
+
+            lista.querySelectorAll('.btn-elimina-fase').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    postazioniFisse.splice(parseInt(e.currentTarget.dataset.index), 1);
+                    rendiPostazioni();
+                    salvaDati();
+                });
+            });
+        }
+
+
+        // --- INIZIALIZZAZIONE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            caricaDati();
+            rendiFasiStandard();
+            rendiPostazioni();
+            rendiOrdiniDiLavoro();
+            popolaSelectFasiOdL();
+
+            // Listener Fasi Standard
+            document.getElementById('btn_aggiungi_fase_standard').addEventListener('click', aggiungiFaseStandard);
+            document.getElementById('nuova_fase_colore').addEventListener('change', aggiornaAnteprimaColore);
+            aggiornaAnteprimaColore();
+
+            // Listener Postazioni
+            document.getElementById('btn_aggiungi_postazione').addEventListener('click', aggiungiPostazione);
+           
+            // Listener ODL
+            document.getElementById('btn_aggiungi_fase_odl').addEventListener('click', aggiungiFaseOdL);
+            document.getElementById('btn_salva_odl').addEventListener('click', salvaOrdineDiLavoro);
+           
+            // Listener Salvataggio Generale
+            document.getElementById('btn_salva_dati').addEventListener('click', salvaDati);
+           
+            // Logica di navigazione
+            document.getElementById('btn_vai_a_griglia').addEventListener('click', () => {
+                window.location.href = 'griglia.html';
+            });
+        });
+    </script>
+</body>
+</html>
