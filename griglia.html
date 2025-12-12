@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Programma 2: Pianificazione di Produzione (Fascia Oraria in Range)</title>
+    <title>Programma 2: Pianificazione di Produzione (Multi-Giorno Corretto)</title>
     
     <style>
         /* === STILE CSS === */
+        /* Controlla che le classi task-fase-X siano definite qui sotto */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         h1 { color: #333; text-align: center; }
-        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0 0 0 / 10%); }
         
         /* Navigazione */
         #btn_torna_al_registro { padding: 8px 15px; margin-bottom: 20px; background-color: #5c6bc0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; float: right; }
@@ -17,113 +18,56 @@
         /* Controlli e Paginazione */
         #controls { text-align: center; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         #controls button { padding: 10px 15px; background-color: #3f51b5; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
+
+        /* Stile Ricerca */
+        #search-container { text-align: center; margin: 15px 0; padding: 10px; background-color: #e8eaf6; border-radius: 5px; }
+        #search-input { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; width: 250px; }
+        #search-button { padding: 8px 15px; background-color: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; }
         
-        /* 1. Contenitore Scrollabile: Abilita lo scroll orizzontale */
-        #tabella-container {
-            overflow-x: auto; 
-            overflow-y: hidden; 
-            padding-bottom: 10px; 
-            border: 1px solid #ddd; 
-        }
-        
-        /* Stili Tabella */
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 10px; 
-            table-layout: fixed; /* ESSENZIALE per larghezze fisse */
-            border-spacing: 0; 
-            min-width: 100%; 
-        }
+        /* Tabella */
+        #tabella-container { overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; border-spacing: 0; min-width: 100%; }
         th, td { border: 1px solid #ddd; padding: 4px; text-align: center; height: 35px; white-space: nowrap; }
         
-        /* 2. Intestazioni Fisse (Sticky) Verticalmente */
-        .tabella-pagina thead {
-            position: sticky;
-            top: 0;
-            left: 0; 
-            z-index: 10;
-        }
-
-        .header-ora, .header-minuto {
-            position: sticky; 
-            z-index: 10;      
-        }
+        /* Intestazioni Fisse (Sticky Verticale) */
+        .tabella-pagina thead { position: sticky; top: 0; left: 0; z-index: 10; }
+        .header-ora, .header-minuto { position: sticky; z-index: 10; }
         .header-ora { background-color: #3f51b5; color: white; font-size: 14px; font-weight: bold; cursor: pointer; }
-        
-        /* COLONNE MINUTI: LARGHEZZA A 80px */
-        .header-minuto { 
-            background-color: #7986cb; 
-            color: white; 
-            font-size: 10px; 
-            width: 80px; /* Larghezza 80px */
-            top: 35px; 
-        }
+        .header-minuto { background-color: #7986cb; color: white; font-size: 10px; width: 80px; top: 35px; }
 
-        /* CORREZIONE CRUCIALE: FORZA LA LARGHEZZA SULLE CELLE DATI */
-        .tabella-pagina tbody td:not(.postazione-col) {
-            width: 80px; /* Larghezza 80px */
-        }
+        /* Larghezza Colonne Dati */
+        .tabella-pagina tbody td:not(.postazione-col) { width: 80px; }
         
-        /* 3. Colonna Postazioni Fisse (Sticky) Orizzontalmente */
+        /* Colonna Postazioni Fisse (Sticky Orizzontale) */
         .postazione-col { 
-            background-color: #607d8b; 
-            color: white; 
-            text-align: left; 
-            width: 150px; /* Larghezza della colonna postazione rimane a 150px */
-            padding: 8px; 
-            position: sticky; 
-            left: 0;          
-            z-index: 15;      
+            background-color: #607d8b; color: white; text-align: left; width: 150px; padding: 8px; 
+            position: sticky; left: 0; z-index: 15; 
         }
 
-        /* 4. Cella d'Angolo (Fissa sia in alto che a sinistra) */
-
-        /* Cella d'angolo superiore (Riga Ore) */
-        .tabella-pagina thead tr:first-child .postazione-col {
-            top: 0;
-            z-index: 30; 
-            background-color: #4a5d68; 
-        }
-
-        /* Cella d'angolo inferiore (Riga Minuti) */
-        .tabella-pagina thead tr:last-child .postazione-col {
-            top: 35px; 
-            z-index: 30;
-            background-color: #4a5d68;
-        }
-
-        /* Stile Cella Pausa: Rimuove pointer-events: none e rende il cursore normale */
-        .break-cell { 
-            background-color: #ffcdd2; 
-            color: #c62828; 
-            font-weight: bold; 
-            cursor: pointer; /* Ora è cliccabile */
-            pointer-events: auto; /* Riabilita il click */
-        }
-        .break-cell:hover {
-            filter: brightness(0.9);
-        }
+        /* Cella d'Angolo Fissa */
+        .tabella-pagina thead tr:first-child .postazione-col { top: 0; z-index: 30; background-color: #4a5d68; }
+        .tabella-pagina thead tr:last-child .postazione-col { top: 35px; z-index: 30; background-color: #4a5d68; }
 
         /* Stili Interattivi */
+        .break-cell { background-color: #ffcdd2; color: #c62828; font-weight: bold; cursor: pointer; pointer-events: auto; }
         .task-cell, .free-cell { transition: background-color 0.2s; cursor: pointer; }
         .free-cell:hover { background-color: #e0e0e0; }
         .task-cell { color: white; font-size: 10px; font-weight: bold; border: 1px solid #555; }
-        .task-cell:hover { filter: brightness(1.2); } /* Effetto hover visivo */
+        .task-cell:hover { filter: brightness(1.2); } 
         
-        /* CLASSI COLORE ODL */
+        /* CLASSI COLORE ODL (Importante che siano corrette) */
         .task-fase-1 { background-color: #00bcd4; } 
         .task-fase-2 { background-color: #ff9800; } 
         .task-fase-3 { background-color: #4caf50; } 
         .task-fase-4 { background-color: #9c27b0; }
         .task-fase-5 { background-color: #f44336; }
-        .task-fase-6 { background-color: #ffeb3b; }
+        .task-fase-6 { background-color: #ffeb3b; color: #333; } 
         .task-fase-7 { background-color: #795548; } 
         .task-fase-8 { background-color: #03a9f4; } 
         .task-fase-9 { background-color: #e91e63; } 
         .task-fase-10 { background-color: #607d8b; } 
-        
-        /* Stili Bottoni Task */
+
+        /* Stile Bottoni Task */
         #selezione-fase button { 
             padding: 10px 15px; 
             margin: 5px; 
@@ -137,33 +81,16 @@
             white-space: normal; 
             word-wrap: break-word;
         }
-        #selezione-fase button.selected { border: 4px solid #333; opacity: 1; box-shadow: 0 0 10px rgba(0, 0, 0, 0.4); }
+        /* Classe per il bordo di selezione */
+        #selezione-fase button.selected { border: 4px solid #333; opacity: 1; box-shadow: 0 0 10px rgba(0 0 0 / 40%); }
+        
         .tabella-pagina { display: none; } 
         .tabella-pagina.active { display: table; } 
         
-        /* --- NUOVI STILI PER MODALITÀ DI ALLOCAZIONE --- */
-
-        /* Modalità Task Normale (Indicazione per l'inserimento) */
-        body.task-mode .free-cell {
-            border: 1px dashed #3f51b5; /* Bordo blu tratteggiato su celle libere */
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        body.task-mode .free-cell:hover {
-            background-color: #e3f2fd; /* Sfondo molto chiaro all'hover */
-            cursor: crosshair; /* Cursore a mirino per suggerire il click di allocazione */
-            border-color: #5c6bc0;
-        }
-
-        /* Modalità Cancellazione (Indicazione per la rimozione) */
-        body.clear-mode .free-cell {
-            border: 1px dashed #f44336; /* Bordo rosso tratteggiato su celle libere */
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        body.clear-mode .free-cell:hover {
-            background-color: #ffebee; /* Sfondo rosso chiaro all'hover */
-            cursor: cell; /* Cursore a croce per suggerire la selezione di un'area */
-            border-color: #c62828;
-        }
+        /* Modalità Interattive */
+        body.task-mode .free-cell { border: 1px dashed #3f51b5; }
+        body.task-mode .free-cell:hover { background-color: #e3f2fd; cursor: crosshair; }
+        body.clear-mode .task-cell:hover { background-color: rgba(244 67 54 / 50%); cursor: cell; border-color: #c62828; }
     </style>
 </head>
 <body>
@@ -180,8 +107,10 @@
             <h3>1. Seleziona l'attività OdL (Articolo - Fase - Tempo):</h3>
             <div id="container-bottoni-fasi">
                 </div>
-            <button id="btn-clear-5min" data-task-name="Libero 5min" data-task-class="clear-5-min" data-task-tempo-minuti="5" style="background-color: #ddd; color: #333;">Cancella/Libera (5 min)</button>
-            <button id="btn-clear-60min" data-task-name="Libero 60min" data-task-class="clear-60-min" data-task-tempo-minuti="60" style="background-color: #f44336; color: white;">Cancella Range (60 min)</button>
+            
+            <button id="btn-delete-task" data-task-name="Cancella Task Completo" data-task-class="delete-task-mode" data-task-tempo-minuti="0" style="background-color: #e65100; color: white; margin: 5px; border: 4px solid transparent;">Cancella Task Selezionato (Intero OdL)</button>
+            <button id="btn-clear-5min" data-task-name="Libero 5min" data-task-class="clear-5-min" data-task-tempo-minuti="5" style="background-color: #ddd; color: #333; margin: 5px; border: 4px solid transparent;">Cancella/Libera (5 min)</button>
+            <button id="btn-clear-60min" data-task-name="Libero 60min" data-task-class="clear-60-min" data-task-tempo-minuti="60" style="background-color: #f44336; color: white; margin: 5px; border: 4px solid transparent;">Cancella Range (60 min)</button>
             
             <p id="stato-selezione" style="font-weight: bold; margin-top: 10px;">Stato: Seleziona un Task.</p>
         </div>
@@ -194,6 +123,13 @@
             <button id="next-page">Avanti &gt;&gt;</button>
         </div>
         
+        <div id="search-container">
+            <h3>Cerca Data Esatta</h3>
+            <input type="text" id="search-input" placeholder="GG/MM/AAAA">
+            <button id="search-button">Vai al Giorno</button>
+            <p style="font-size: 0.8em; margin-top: 5px;">Inserisci una data (es. 01/01/2026).</p>
+        </div>
+        
         <h3>2. Clicca su un blocco di 5 minuti per allocare un nuovo task, o clicca su un task esistente per vedere i dettagli:</h3>
         <div id="tabella-container"></div>
     </div>
@@ -202,39 +138,104 @@
         // --- CHIAVI LOCALSTORAGE ---
         const CHIAVE_POSTAZIONI = 'registroMasterPostazioni';
         const CHIAVE_ODL = 'registroOrdiniDiLavoro'; 
-        // NUOVA CHIAVE PER LA PERSISTENZA DEI DATI DI ALLOCAZIONE
         const CHIAVE_ALLOCAZIONI = 'datiAllocazionePianificazione'; 
 
         let listaPostazioni = []; 
         let ordiniDiLavoro = []; 
-        let datiAllocazione = {}; // Sarà caricato da localStorage
+        
+        // Nuova struttura: { "Postazione X": { "GG/MM/AAAA": [slot array], ... } }
+        let datiAllocazione = {}; 
 
         // --- CONFIGURAZIONE TEMPORALE ---
-        const ORE_DA_COPRIRE = 160; 
         const ORE_DI_LAVORO_PER_PAGINA = 8; 
         const ORE_DI_PAUSA_PER_PAGINA = 1;  
         const ORA_INIZIO_FISSA = 8;         
         const INTERVALLO_MINUTI = 5; 
+        
+        // --- VARIABILI GLOBALI E CALENDARIO ---
+        let taskSelezionato = null;
+        let currentPage = 0; 
+        let giorniLavorativiMappati = []; 
+        let NUMERO_PAGINE = 0; 
+        
+        // Data di inizio normalizzata a mezzanotte
+        const DATA_INIZIO_PIANIFICAZIONE = (function() {
+            const dataFissa = new Date(2025, 11, 9); // 09/12/2025
+            dataFissa.setHours(0, 0, 0, 0);
+            return dataFissa;
+        })(); 
 
         // --- CALCOLI DERIVATI ---
-        const slotPerOra = 60 / INTERVALLO_MINUTI; // 12 slot
-        const ORE_DI_DISPLAY_PER_PAGINA = ORE_DI_LAVORO_PER_PAGINA + ORE_DI_PAUSA_PER_PAGINA; 
-        const SLOTS_PER_LAVORO = ORE_DI_LAVORO_PER_PAGINA * slotPerOra; 
-        const SLOTS_PER_DISPLAY = ORE_DI_DISPLAY_PER_PAGINA * slotPerOra; 
-        const NUMERO_PAGINE = Math.ceil(ORE_DA_COPRIRE / ORE_DI_LAVORO_PER_PAGINA); 
-        const MAX_SLOTS_GLOBALI = ORE_DA_COPRIRE * slotPerOra;
+        const slotPerOra = 60 / INTERVALLO_MINUTI; // 12 slot/ora
+        const ORE_DI_DISPLAY_PER_PAGINA = ORE_DI_LAVORO_PER_PAGINA + ORE_DI_PAUSA_PER_PAGINA; // 9 ore
+        const SLOTS_PER_GIORNO_DISPLAY = ORE_DI_DISPLAY_PER_PAGINA * slotPerOra; // 108 slot (Indici 0-107)
         
         // Pausa (es: 12:30 - 13:30)
         const SLOTS_PAUSA_DURATA = 60 / INTERVALLO_MINUTI; // 12 slot
-        const SLOTS_PRIMA_PAUSA = (4 * slotPerOra) + (30 / INTERVALLO_MINUTI); // 4 ore e 30 minuti = 54 slot lavorativi
-        const SLOTS_PAUSA_INIZIO_DISPLAY = SLOTS_PRIMA_PAUSA; 
+        const SLOTS_PRIMA_PAUSA = (4 * slotPerOra) + (30 / INTERVALLO_MINUTI); // Slot 48 + 6 = 54 (12:30)
+        const SLOTS_PAUSA_INIZIO_DISPLAY = SLOTS_PRIMA_PAUSA; // Indice 54
+
+        // -------------------------------------------------------------------
+        // --- FUNZIONI UTILITY E CALENDARIO ---
+        // -------------------------------------------------------------------
+
+        function formattaData(data) {
+             const giorno = String(data.getDate()).padStart(2, '0');
+             const mese = String(data.getMonth() + 1).padStart(2, '0');
+             const anno = data.getFullYear();
+             return `${giorno}/${mese}/${anno}`;
+        }
         
-        // --- VARIABILI GLOBALI ---
-        let taskSelezionato = null;
-        let currentPage = 0; 
-        
-        
-        // --- FUNZIONE PER SALVARE I DATI DI ALLOCAZIONE ---
+        function mappaGiorniLavorativi() {
+            giorniLavorativiMappati = [];
+            let dataCorrente = new Date(DATA_INIZIO_PIANIFICAZIONE);
+            const MAX_GIORNI_CALENDARIO = 365 * 2; 
+
+            for (let i = 0; i < MAX_GIORNI_CALENDARIO; i++) {
+                const giornoSettimana = dataCorrente.getDay();
+                
+                if (giornoSettimana !== 0 && giornoSettimana !== 6) { // Non è Sabato (6) o Domenica (0)
+                    const dataStringa = formattaData(dataCorrente);
+                    giorniLavorativiMappati.push(dataStringa);
+                }
+
+                dataCorrente.setDate(dataCorrente.getDate() + 1);
+                
+                if (giorniLavorativiMappati.length >= 260) break; 
+            }
+            NUMERO_PAGINE = giorniLavorativiMappati.length;
+        }
+
+        function cercaGiorno() {
+            const input = document.getElementById('search-input').value.trim();
+            
+            if (!input) {
+                alert("Per favore, inserisci una data (GG/MM/AAAA).");
+                return;
+            }
+
+            const parts = input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (parts) {
+                const dataCercataStringa = `${parts[1]}/${parts[2]}/${parts[3]}`;
+                const pageIndex = giorniLavorativiMappati.indexOf(dataCercataStringa);
+
+                if (pageIndex !== -1) {
+                    mostraPagina(pageIndex); 
+                    document.getElementById('search-input').value = '';
+                } else {
+                    alert(`La data ${dataCercataStringa} non è un giorno lavorativo pianificato o è fuori range.`);
+                }
+                return;
+            } 
+            
+            alert("Input non riconosciuto. Inserisci una data valida (GG/MM/AAAA).");
+        }
+
+
+        // -------------------------------------------------------------------
+        // --- FUNZIONI DI BASE E UTILITY ---
+        // -------------------------------------------------------------------
+
         function salvaAllocazione() {
             try {
                 localStorage.setItem(CHIAVE_ALLOCAZIONI, JSON.stringify(datiAllocazione));
@@ -243,16 +244,14 @@
             }
         }
 
-        // --- FUNZIONE DI CARICAMENTO DATI MASTER (AGGIORNATA PER LA PERSISTENZA) ---
         function caricaDatiMaster() {
             try {
                 const postazioniJson = localStorage.getItem(CHIAVE_POSTAZIONI);
-                listaPostazioni = postazioniJson ? JSON.parse(postazioniJson) : ["A1 - Default"];
+                listaPostazioni = postazioniJson ? JSON.parse(postazioniJson) : ["A1 - Default", "B2 - Default"];
 
                 const odlJson = localStorage.getItem(CHIAVE_ODL);
                 ordiniDiLavoro = odlJson ? JSON.parse(odlJson) : [];
                 
-                // Caricamento dei Dati di Allocazione salvati
                 const allocazioniJson = localStorage.getItem(CHIAVE_ALLOCAZIONI);
                 datiAllocazione = allocazioniJson ? JSON.parse(allocazioniJson) : {};
 
@@ -261,21 +260,19 @@
             }
         }
         
-        // --- GENERAZIONE BOTTONI DALL'ODL (AGGIORNATA) ---
-        
         function generaBottoniFasi() {
             const container = document.getElementById('container-bottoni-fasi');
             container.innerHTML = ''; 
 
             if (ordiniDiLavoro.length === 0) {
-                container.innerHTML = '<p style="color: red; font-weight: bold;">Nessun Ordine di Lavoro (OdL) trovato. Torna al Registro (Programma 1) per definirli.</p>';
-                return;
+                 container.innerHTML = '<p style="color: red; font-weight: bold;">Nessun Ordine di Lavoro (OdL) trovato. Torna al Registro (Programma 1) per definirli.</p>';
             }
 
-            ordiniDiLavoro.forEach((odl, odlIndex) => {
-                odl.fasi.forEach((fase, faseIndex) => {
+            let firstTaskAssigned = false;
+            
+            ordiniDiLavoro.forEach((odl) => {
+                odl.fasi.forEach((fase) => {
                     const btn = document.createElement('button');
-                    
                     const nomeCompleto = `${odl.id} - ${fase.name} (${fase.tempo}m)`; 
                     
                     btn.textContent = nomeCompleto;
@@ -286,25 +283,24 @@
                     btn.classList.add(fase.class); 
                     container.appendChild(btn);
                     
-                    // Imposta il primo task come selezionato di default e attiva la modalità visiva
-                    if (odlIndex === 0 && faseIndex === 0) {
-                        taskSelezionato = { 
-                            name: nomeCompleto, 
-                            class: fase.class,
-                            tempo: fase.tempo 
-                        };
+                    if (!firstTaskAssigned) {
+                        taskSelezionato = { name: nomeCompleto, class: fase.class, tempo: fase.tempo };
                         btn.classList.add('selected');
                         document.getElementById('stato-selezione').textContent = `Stato: Task selezionato: ${nomeCompleto}`;
-                        document.body.classList.add('task-mode'); // Attiva la modalità visiva
+                        document.body.classList.add('task-mode'); 
+                        firstTaskAssigned = true;
                     }
                 });
             });
             
-            // Inizializza gli array per le postazioni se non esistono o se la lunghezza non corrisponde
+            // Inizializzazione struttura dati per ogni postazione e giorno lavorativo mappato
             listaPostazioni.forEach(p => {
-                if (!datiAllocazione[p] || datiAllocazione[p].length !== MAX_SLOTS_GLOBALI) {
-                    datiAllocazione[p] = Array(MAX_SLOTS_GLOBALI).fill(null);
-                }
+                if (!datiAllocazione[p]) { datiAllocazione[p] = {}; }
+                giorniLavorativiMappati.forEach(dataStr => {
+                    if (!datiAllocazione[p][dataStr]) {
+                         datiAllocazione[p][dataStr] = Array(SLOTS_PER_GIORNO_DISPLAY).fill(null);
+                    }
+                });
             });
             
             document.querySelectorAll('#selezione-fase button').forEach(btn => {
@@ -312,9 +308,9 @@
             });
         }
         
-        // --- FUNZIONE AGGIORNATA: GESTIONE SELEZIONE BOTTONE E MODALITÀ VISIVA ---
         function gestisciSelezioneBottone(event) {
             const bottoneCliccato = event.currentTarget;
+            
             document.querySelectorAll('#selezione-fase button').forEach(btn => {
                 btn.classList.remove('selected');
             });
@@ -324,80 +320,63 @@
             const tempoMinuti = parseInt(bottoneCliccato.dataset.taskTempoMinuti); 
 
             taskSelezionato = { name: taskName, class: taskClass, tempo: tempoMinuti };
-            bottoneCliccato.classList.add('selected');
+            
+            bottoneCliccato.classList.add('selected'); 
 
             const statoElement = document.getElementById('stato-selezione');
             const body = document.body;
 
-            // Rimuovi classi di modalità precedenti
             body.classList.remove('task-mode', 'clear-mode');
             
-            // Logica Aggiornata per i bottoni di Cancellazione
             if (taskClass.startsWith('clear-')) { 
                 statoElement.textContent = `Stato: Modalità Cancellazione Range Attiva (${tempoMinuti} min). Clicca sullo slot di inizio.`;
                 statoElement.style.color = 'red';
-                body.classList.add('clear-mode'); // Aggiunge la classe per la modalità Cancella
+                body.classList.add('clear-mode'); 
+            } else if (taskClass === 'delete-task-mode') {
+                statoElement.textContent = `Stato: Modalità CANCELLAZIONE TASK COMPLETO. Clicca su una cella del Task da eliminare.`;
+                statoElement.style.color = 'darkorange';
+                body.classList.add('clear-mode'); 
             } else {
                 statoElement.textContent = `Stato: Task selezionato: ${taskName} (Tempo: ${tempoMinuti} min)`;
                 statoElement.style.color = window.getComputedStyle(bottoneCliccato).backgroundColor || 'black';
-                body.classList.add('task-mode'); // Aggiunge la classe per la modalità Task
+                body.classList.add('task-mode'); 
             }
         }
         
-        // --- FUNZIONE PER OTTENERE L'ORA E IL GIORNO A PARTIRE DALLO SLOT GLOBALE ---
-        function ottieniOraEData(slotGlobale) {
-            const minutiTotali = slotGlobale * INTERVALLO_MINUTI;
-            const oreTotali = minutiTotali / 60;
-            const giorniTrascorsi = Math.floor(oreTotali / ORE_DI_LAVORO_PER_PAGINA);
-            
-            let minutiLavoratiNelGiorno = minutiTotali - (giorniTrascorsi * ORE_DI_LAVORO_PER_PAGINA * 60);
+        function ottieniOraDaSlotLocale(slotLocale) {
+            let minutiLavoratiNelGiorno = slotLocale * INTERVALLO_MINUTI;
 
-            // Calcolo dell'Ora d'Inizio Reale (tenendo conto della pausa)
-            const slotPausaInizio = SLOTS_PRIMA_PAUSA * INTERVALLO_MINUTI; 
-            const slotPausaFine = (SLOTS_PRIMA_PAUSA + SLOTS_PAUSA_DURATA) * INTERVALLO_MINUTI; 
-            
+            const slotPausaInizio = SLOTS_PAUSA_INIZIO_DISPLAY * INTERVALLO_MINUTI; 
+            const pausaDurataMinuti = 60; 
+
             let minutiOraInizio = ORA_INIZIO_FISSA * 60 + minutiLavoratiNelGiorno;
             
             if (minutiOraInizio >= slotPausaInizio + (ORA_INIZIO_FISSA * 60)) {
-                // Se lo slot cade dopo l'inizio pausa (12:30), aggiungiamo la durata pausa (60min)
-                minutiOraInizio += 60; 
+                minutiOraInizio += pausaDurataMinuti; 
             }
             
             const oraReale = Math.floor(minutiOraInizio / 60);
             const minutoReale = minutiOraInizio % 60;
 
-            const giorno = giorniTrascorsi + 1;
-            const orarioStringa = `${String(oraReale).padStart(2, '0')}:${String(minutoReale).padStart(2, '0')}`;
-            
-            return { giorno, orarioStringa };
+            return `${String(oraReale).padStart(2, '0')}:${String(minutoReale).padStart(2, '0')}`;
         }
         
-        // --- NUOVA FUNZIONE: MOSTRA DETTAGLI PAUSA ---
-        function mostraDettagliPausa(event) {
-            const cella = event.currentTarget;
-            const postazione = cella.dataset.postazione;
-            const ora = "12:30"; 
-            const fine = "13:30";
-            
-            alert(`PAUSA PRANZO 🍽️\n\nQuesta fascia oraria (dalle ${ora} alle ${fine}) è riservata e non allocabile per la Postazione ${postazione}.`);
-        }
-        
-        // --- MOSTRA DETTAGLI TASK ALLOCATO ---
-        function mostraDettagliTask(postazione, slotGlobale) {
-            const assegnazione = datiAllocazione[postazione] ? datiAllocazione[postazione][slotGlobale] : null;
+        function mostraDettagliTask(postazione, dataStr, slotLocale) {
+            const datiGiorno = datiAllocazione[postazione][dataStr];
+            const assegnazione = datiGiorno ? datiGiorno[slotLocale] : null;
             
             if (assegnazione && assegnazione.name) {
-                // Cerchiamo l'inizio del task per trovare il tempo totale allocato
-                let slotInizio = slotGlobale;
-                while (slotInizio > 0 && datiAllocazione[postazione][slotInizio - 1] && datiAllocazione[postazione][slotInizio - 1].name === assegnazione.name) {
+                let slotInizio = slotLocale;
+                
+                // Cerca l'inizio del task contiguo nel giorno corrente
+                while (slotInizio > 0 && datiGiorno[slotInizio - 1] && datiGiorno[slotInizio - 1].name === assegnazione.name) {
                     slotInizio--;
                 }
 
-                // Troviamo il primo slot con il tempo totale salvato (se non è null)
-                const taskInizioDati = datiAllocazione[postazione][slotInizio];
-                const tempoTotale = taskInizioDati && taskInizioDati.tempo ? taskInizioDati.tempo : 'N.D.';
+                const taskInizioDati = datiGiorno[slotInizio];
+                const tempoTotale = taskInizioDati && taskInizioDati.tempo ? taskInizioDati.tempo : 'N.D. (Task continuo)';
 
-                const dataOra = ottieniOraEData(slotInizio);
+                const orarioStringa = ottieniOraDaSlotLocale(slotInizio);
 
                 const messaggio = `
                     **DETTAGLI TASK ALLOCATO**
@@ -405,35 +384,34 @@
                     Postazione: ${postazione}
                     Task: ${assegnazione.name}
                     Tempo stimato: ${tempoTotale} minuti
-                    Inizio: Giorno ${dataOra.giorno}, ${dataOra.orarioStringa}
-                    Classe: ${assegnazione.class}
+                    Inizio: ${dataStr} (Inizio ${orarioStringa})
+                    
+                    Nota: Il Task potrebbe continuare sui giorni successivi.
                 `;
                 
                 alert(messaggio);
             }
         }
         
-        // --- MOSTRA DETTAGLI ORA ---
-        function mostraDettagliOra(event) {
-            const thOra = event.currentTarget;
-            const oraText = thOra.textContent;
-            
-            alert(`Fascia oraria selezionata: ${oraText}\n\nPer allocare o visualizzare i dettagli, clicca sulla riga dei minuti sottostante.`);
+        function mostraDettagliPausa(event) {
+            const postazione = event.currentTarget.dataset.postazione;
+            alert(`PAUSA PRANZO 🍽️\n\nQuesta fascia oraria (12:30 - 13:30) è riservata per la Postazione ${postazione}.`);
         }
-
-
-        // --- GENERAZIONE GRIGLIA ---
         
+        // -------------------------------------------------------------------
+        // --- GESTIONE GRIGLIA E VISUALIZZAZIONE ---
+        // -------------------------------------------------------------------
+
         function generaGrigliePaginazione() {
             const container = document.getElementById('tabella-container');
             container.innerHTML = ''; 
 
             if (listaPostazioni.length === 0) {
-                 container.innerHTML = '<p style="text-align: center; color: red; font-weight: bold;">ATTENZIONE: Nessuna postazione di lavoro definita. Torna al Registro (Programma 1) per definirle.</p>';
+                 container.innerHTML = '<p style="text-align: center; color: red; font-weight: bold;">ATTENZIONE: Nessuna postazione di lavoro definita.</p>';
                  return;
             }
             
-            for (let paginaIdx = 0; paginaIdx < NUMERO_PAGINE; paginaIdx++) {
+            giorniLavorativiMappati.forEach((dataReale, paginaIdx) => {
                 const tabella = document.createElement('table');
                 tabella.classList.add('tabella-pagina');
                 tabella.id = `page-${paginaIdx}`;
@@ -441,27 +419,24 @@
                 const rigaOre = thead.insertRow();
                 const rigaMinuti = thead.insertRow();
                 
-                // Cella d'angolo (Postazione)
                 rigaOre.insertCell().classList.add('postazione-col'); 
                 rigaMinuti.insertCell().classList.add('postazione-col'); 
 
-                const etichettaGiorno = `Giorno ${paginaIdx + 1}`;
+                const etichettaGiorno = `Data: ${dataReale}`; 
                 
                 for (let i = 0; i < ORE_DI_DISPLAY_PER_PAGINA; i++) {
                     const oraVisualizzata = ORA_INIZIO_FISSA + i; 
                     let thOra = document.createElement("th");
                     
-                    // Fascia oraria in formato "Dalle HH:00 alle HH+1:00"
                     const oraInizio = String(oraVisualizzata).padStart(2, '0');
                     const oraFine = String(oraVisualizzata + 1).padStart(2, '0');
-                    thOra.textContent = `${etichettaGiorno} - Dalle ${oraInizio}:00 alle ${oraFine}:00`;
+                    
+                    thOra.textContent = `${etichettaGiorno} (dalle ${oraInizio}:00 alle ${oraFine}:00)`;
                     
                     thOra.colSpan = slotPerOra; 
                     thOra.classList.add('header-ora');
-                    thOra.dataset.oraIndexDisplay = i; 
                     thOra.dataset.pageIndex = paginaIdx;
-                    
-                    thOra.addEventListener('click', mostraDettagliOra); 
+                    thOra.addEventListener('click', (e) => alert(`Fascia oraria: ${e.currentTarget.textContent}`)); 
                     
                     rigaOre.appendChild(thOra);
 
@@ -474,7 +449,6 @@
                 }
 
                 const tbody = tabella.createTBody();
-                const slotInizioGlobale = paginaIdx * SLOTS_PER_LAVORO; 
                 
                 listaPostazioni.forEach((nomePostazione) => { 
                     const riga = tbody.insertRow();
@@ -482,212 +456,290 @@
                     cellaPostazione.textContent = nomePostazione;
                     cellaPostazione.classList.add('postazione-col'); 
                     
-                    for (let i_display = 0; i_display < SLOTS_PER_DISPLAY; i_display++) {
+                    // Nota: Non carichiamo subito i dati qui, lo faremo in refreshPaginaVisiva() per garantire la freschezza.
+                    
+                    for (let slotLocale = 0; slotLocale < SLOTS_PER_GIORNO_DISPLAY; slotLocale++) {
                         const cella = riga.insertCell();
-                        const isBreakSlot = i_display >= SLOTS_PAUSA_INIZIO_DISPLAY && i_display < SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA;
+                        const isBreakSlot = slotLocale >= SLOTS_PAUSA_INIZIO_DISPLAY && slotLocale < SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA;
 
                         if (isBreakSlot) {
-                            cella.textContent = ""; 
+                            cella.textContent = "PAUSA"; 
                             cella.classList.add('break-cell');
                             cella.dataset.postazione = nomePostazione; 
                             cella.addEventListener('click', mostraDettagliPausa); 
                         } else {
-                            let slotLocaleLavorativo = i_display;
-                            if (i_display >= SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA) {
-                                slotLocaleLavorativo -= SLOTS_PAUSA_DURATA; 
-                            }
-                            
-                            const slotGlobale = slotInizioGlobale + slotLocaleLavorativo;
-                            
+                            // Imposta attributi dati per la ricerca successiva
                             cella.dataset.postazione = nomePostazione;
-                            cella.dataset.slot = slotGlobale; 
+                            cella.dataset.data = dataReale; // Data necessaria per il refresh
+                            cella.dataset.slotLocale = slotLocale; 
                             
-                            const assegnazione = datiAllocazione[nomePostazione] ? datiAllocazione[nomePostazione][slotGlobale] : null; 
-                            if (assegnazione) {
-                                cella.textContent = assegnazione.name.split('(')[0]; 
-                                cella.classList.add('task-cell', assegnazione.class);
-                            } else {
-                                cella.classList.add('free-cell');
-                            }
+                            // Assegniamo una classe base, il contenuto e il colore saranno aggiornati al refresh
+                            cella.classList.add('free-cell');
                             cella.addEventListener('click', gestisciClickCella); 
                         }
                     }
                 });
                 container.appendChild(tabella);
-            }
+            });
+            // La visualizzazione iniziale avverrà tramite mostraPagina che chiama refresh
             mostraPagina(currentPage);
         }
 
+        /**
+         * 🛑 NUOVA FUNZIONE: Aggiorna classi e contenuto di tutte le celle di una pagina esistente.
+         */
+        function refreshPaginaVisiva(pageIndex) {
+            const dataReale = giorniLavorativiMappati[pageIndex];
+            const tabella = document.getElementById(`page-${pageIndex}`);
+            if (!tabella) return;
+
+            // Loop attraverso tutte le postazioni (righe) e slot (colonne)
+            listaPostazioni.forEach(nomePostazione => {
+                const datiGiorno = datiAllocazione[nomePostazione] ? datiAllocazione[nomePostazione][dataReale] : null;
+                
+                for (let slotLocale = 0; slotLocale < SLOTS_PER_GIORNO_DISPLAY; slotLocale++) {
+                    const isBreakSlot = slotLocale >= SLOTS_PAUSA_INIZIO_DISPLAY && slotLocale < SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA;
+                    if (isBreakSlot) continue;
+
+                    // Trova la cella esistente usando gli attributi dati
+                    const cella = tabella.querySelector(`td[data-postazione="${nomePostazione}"][data-slot-locale="${slotLocale}"]`);
+                    
+                    if (cella) {
+                        cella.className = ''; // Resetta tutte le classi (essenziale per l'aggiornamento)
+                        cella.addEventListener('click', gestisciClickCella); // Assicurati che l'evento sia sempre presente
+                        
+                        const assegnazione = datiGiorno ? datiGiorno[slotLocale] : null;
+                        
+                        if (assegnazione) {
+                            const isPrimoSlot = assegnazione.tempo !== null;
+                            cella.textContent = isPrimoSlot ? assegnazione.name.split('(')[0] : '';
+                            cella.classList.add('task-cell', assegnazione.class); // Aggiunge colore e stile Task
+                        } else {
+                            cella.textContent = '';
+                            cella.classList.add('free-cell');
+                        }
+                    }
+                }
+            });
+        }
+        
         function mostraPagina(pageIndex) {
+            if (pageIndex < 0 || pageIndex >= NUMERO_PAGINE) return;
+
             currentPage = pageIndex;
-            const giornoCorrente = `Giorno ${pageIndex + 1}`;
+            
+            const dataCorrente = giorniLavorativiMappati[pageIndex];
             
             document.getElementById('page-info').textContent = 
-                `${giornoCorrente} (Pianificazione 08:00 - 17:00)`; 
+                `Data di Pianificazione: ${dataCorrente} (Orario: 08:00 - 17:00)`; 
             
             document.getElementById('prev-page').disabled = currentPage === 0;
             document.getElementById('next-page').disabled = currentPage === NUMERO_PAGINE - 1;
 
             document.querySelectorAll('.tabella-pagina').forEach((table, index) => {
-                table.style.display = 'none'; 
-                if (index === pageIndex) {
-                    table.style.display = 'table'; 
-                }
+                table.style.display = (index === pageIndex) ? 'table' : 'none'; 
             });
+            
+            // 🛑 CHIAMATA CRUCIALE: Aggiorna l'HTML della pagina visibile con i dati più recenti
+            refreshPaginaVisiva(pageIndex); 
         }
         
-        function aggiornaCellaVisiva(postazione, slot, taskName, taskClass) {
-            const cella = document.querySelector(`td[data-postazione="${postazione}"][data-slot="${slot}"]`);
+        // La funzione aggiornaCellaVisiva ora è usata solo per aggiornamenti rapidi sulla pagina corrente
+        function aggiornaCellaVisiva(postazione, dataStr, slotLocale, taskName, taskClass) {
+            if (dataStr !== giorniLavorativiMappati[currentPage]) return;
+            
+            const cella = document.querySelector(`td[data-postazione="${postazione}"][data-data="${dataStr}"][data-slot-locale="${slotLocale}"]`);
             if (cella) {
                 cella.className = ''; 
                 if (taskClass.startsWith('clear-') || taskClass === 'free-cell') { 
                     cella.textContent = '';
                     cella.classList.add('free-cell'); 
                 } else {
-                    // Visualizza il nome solo sul primo slot del task
-                    const isPrimoSlot = datiAllocazione[postazione][slot] && datiAllocazione[postazione][slot].tempo !== null;
+                    const datiGiorno = datiAllocazione[postazione][dataStr];
+                    const assegnazione = datiGiorno ? datiGiorno[slotLocale] : null;
+
+                    const isPrimoSlot = assegnazione && assegnazione.tempo !== null;
+                    
                     cella.textContent = isPrimoSlot ? taskName.split('(')[0] : ''; 
                     cella.classList.add('task-cell', taskClass);
                 }
             }
         }
         
-        // --- LOGICA CHIAVE: Allocazione multi-slot automatica e Gestione Cancellazione Range (AGGIORNATA CON SALVATAGGIO) ---
+        // -------------------------------------------------------------------
+        // --- LOGICA DI ALLOCAZIONE/CANCELLAZIONE (INVARIATA) ---
+        // -------------------------------------------------------------------
+
         function gestisciClickCella(event) {
             const cellaCliccata = event.currentTarget;
             const postazione = cellaCliccata.dataset.postazione;
-            const slotInizialeGlobale = parseInt(cellaCliccata.dataset.slot); 
+            
+            let dataCorrenteStringa = cellaCliccata.dataset.data; 
+            let slotInizialeLocale = parseInt(cellaCliccata.dataset.slotLocale); 
             
             if (!taskSelezionato) {
                 alert("Per favore, seleziona prima un Task.");
                 return;
             }
+            
+            // Omissis: Logica di cancellazione (invariata rispetto all'ultima versione)
+            if (taskSelezionato.class.startsWith('clear-') || taskSelezionato.class === 'delete-task-mode') {
+                const datiGiorno = datiAllocazione[postazione][dataCorrenteStringa];
+                const assegnazione = datiGiorno ? datiGiorno[slotInizialeLocale] : null;
 
-            const assegnazione = datiAllocazione[postazione] ? datiAllocazione[postazione][slotInizialeGlobale] : null;
+                // 1.A. CANCELLAZIONE RANGE FISSO (5m / 60m)
+                if (taskSelezionato.class.startsWith('clear-')) {
+                    const slotsToClear = Math.ceil(taskSelezionato.tempo / INTERVALLO_MINUTI);
+                    if (slotsToClear > 1 && !confirm(`Confermi di voler liberare ${slotsToClear * INTERVALLO_MINUTI} minuti (solo in questo giorno)?`)) return;
 
-            // 1. GESTIONE MODALITÀ CANCELLAZIONE RANGE (5 MIN o 60 MIN)
-            if (taskSelezionato.class.startsWith('clear-')) {
-                const slotsToClear = Math.ceil(taskSelezionato.tempo / INTERVALLO_MINUTI);
-                const isClear5Min = slotsToClear === 1;
-                
-                if (!isClear5Min && !confirm(`Confermi di voler liberare ${slotsToClear * INTERVALLO_MINUTI} minuti (${slotsToClear * INTERVALLO_MINUTI / 60} ora) a partire da questo slot?`)) {
+                    let slotsCleared = 0;
+                    let dataChanged = false;
+
+                    for (let i = 0; slotsCleared < slotsToClear; i++) {
+                        let slotCorrenteLocale = slotInizialeLocale + i;
+                        
+                        if (slotCorrenteLocale >= SLOTS_PER_GIORNO_DISPLAY) break; 
+                        
+                        const isBreakSlot = slotCorrenteLocale >= SLOTS_PAUSA_INIZIO_DISPLAY && slotCorrenteLocale < SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA;
+                        if (isBreakSlot) {
+                            i += SLOTS_PAUSA_DURATA - 1; 
+                            continue; 
+                        }
+                        
+                        if (datiGiorno[slotCorrenteLocale] !== null) {
+                             datiGiorno[slotCorrenteLocale] = null;
+                             dataChanged = true;
+                        }
+                        aggiornaCellaVisiva(postazione, dataCorrenteStringa, slotCorrenteLocale, '', 'free-cell'); 
+                        slotsCleared++;
+                    }
+                    if (dataChanged) salvaAllocazione();
                     return;
                 }
 
-                let slotsCleared = 0;
-                let dataChanged = false;
+                // 1.B. CANCELLAZIONE TASK COMPLETO (LIMITATA AL GIORNO CORRENTE) 
+                if (taskSelezionato.class === 'delete-task-mode') {
+                    if (!assegnazione) {
+                        alert("Clicca su una cella colorata per cancellare l'intero Task.");
+                        return;
+                    }
+                    if (!confirm(`Confermi la cancellazione del Task: ${assegnazione.name} (solo le parti contigue in questo giorno)?`)) return;
 
-                // Loop per cancellare il numero richiesto di slot LAVORATIVI
-                for (let i = 0; slotsCleared < slotsToClear; i++) {
-                    let slotCorrente = slotInizialeGlobale + i;
+                    const nomeTaskDaCancellare = assegnazione.name;
+                    let dataChanged = false;
                     
-                    if (slotCorrente >= MAX_SLOTS_GLOBALI) break;
+                    let slotInizio = slotInizialeLocale;
+                    while (slotInizio > 0 && datiGiorno[slotInizio - 1] && datiGiorno[slotInizio - 1].name === nomeTaskDaCancellare) { slotInizio--; }
 
-                    const cellaCorrenteVisuale = document.querySelector(`td[data-postazione="${postazione}"][data-slot="${slotCorrente}"]`);
-
-                    // Controlla se lo slot corrente (globale) corrisponde a una pausa pranzo VISIBILE
-                    if (cellaCorrenteVisuale && cellaCorrenteVisuale.classList.contains('break-cell')) {
-                        // Salta l'intera durata della pausa (12 slot)
-                        i += SLOTS_PAUSA_DURATA - 1; // -1 perché i++ verrà eseguito alla fine del ciclo
-                        continue; 
+                    let slotFine = slotInizialeLocale;
+                    while (slotFine < SLOTS_PER_GIORNO_DISPLAY && datiGiorno[slotFine] && datiGiorno[slotFine].name === nomeTaskDaCancellare) { slotFine++; }
+                    
+                    for (let s = slotInizio; s < slotFine; s++) {
+                        if (datiGiorno[s] && datiGiorno[s].name === nomeTaskDaCancellare) {
+                             datiGiorno[s] = null;
+                             dataChanged = true;
+                             aggiornaCellaVisiva(postazione, dataCorrenteStringa, s, '', 'free-cell'); 
+                        }
                     }
                     
-                    // Cancella Dati
-                    if (datiAllocazione[postazione][slotCorrente] !== null) {
-                         datiAllocazione[postazione][slotCorrente] = null;
-                         dataChanged = true;
-                    }
-                    
-                    // Aggiorna Visuals (solo se la cella è attualmente visibile)
-                    if (cellaCorrenteVisuale) {
-                         aggiornaCellaVisiva(postazione, slotCorrente, '', 'free-cell'); 
-                    }
-                    
-                    slotsCleared++;
+                    if (dataChanged) { salvaAllocazione(); alert(`Blocco Task "${nomeTaskDaCancellare}" cancellato nel giorno ${dataCorrenteStringa}.`); }
+                    return;
                 }
-                
-                if (dataChanged) salvaAllocazione();
-                return;
             }
 
-            // 2. GESTIONE TASK NORMALE (Allocazione o Dettagli)
+            // Omissis: Visualizzazione dettagli (invariata)
+            const datiGiornoInizio = datiAllocazione[postazione][dataCorrenteStringa];
+            const assegnazione = datiGiornoInizio ? datiGiornoInizio[slotInizialeLocale] : null;
+
             if (assegnazione) {
-                // Task Normale attivo: mostra i dettagli del task esistente.
-                mostraDettagliTask(postazione, slotInizialeGlobale);
+                mostraDettagliTask(postazione, dataCorrenteStringa, slotInizialeLocale);
                 return; 
             }
             
-            // 3. CELLA LIBERA: ALLOCA UN NUOVO TASK
+            // 3. ALLOCAZIONE TASK (LOGICA MULTI-GIORNO)
             
             const { name: taskName, class: taskClass, tempo } = taskSelezionato;
-            
             const slotsDaAllocare = Math.ceil(tempo / INTERVALLO_MINUTI);
-            const limiteGlobale = MAX_SLOTS_GLOBALI;
-
             let slotsAllocati = 0;
             let dataChanged = false;
 
-            for (let i = 0; slotsAllocati < slotsDaAllocare; i++) {
-                let slotCorrente = slotInizialeGlobale + i;
+            let currentDayIndex = giorniLavorativiMappati.indexOf(dataCorrenteStringa); 
+            let slotCorrenteLocale = slotInizialeLocale;
+
+            if (currentDayIndex === -1) {
+                alert("Errore: Impossibile trovare la data di inizio nella mappa dei giorni lavorativi.");
+                return;
+            }
+
+            while (slotsAllocati < slotsDaAllocare) {
                 
-                // Controllo Limite
-                if (slotCorrente >= limiteGlobale) {
-                    alert(`Attenzione: solo ${slotsAllocati * INTERVALLO_MINUTI} minuti di ${tempo} minuti sono stati allocati prima della fine della pianificazione.`);
-                    break;
+                // 🛑 GESTIONE SCORRIMENTO AL GIORNO SUCCESSIVO
+                if (slotCorrenteLocale >= SLOTS_PER_GIORNO_DISPLAY) { 
+                    currentDayIndex++;
+                    slotCorrenteLocale = 0; 
+                    
+                    if (currentDayIndex >= NUMERO_PAGINE) {
+                        alert(`Attenzione: Solo ${slotsAllocati * INTERVALLO_MINUTI} minuti di ${tempo} minuti sono stati allocati prima di raggiungere la fine della pianificazione.`);
+                        break; 
+                    }
+                    dataCorrenteStringa = giorniLavorativiMappati[currentDayIndex];
                 }
+                
+                const datiGiorno = datiAllocazione[postazione][dataCorrenteStringa];
+                
+                // GESTIONE PAUSA PRANZO
+                const isBreakSlot = slotCorrenteLocale >= SLOTS_PAUSA_INIZIO_DISPLAY && slotCorrenteLocale < SLOTS_PAUSA_INIZIO_DISPLAY + SLOTS_PAUSA_DURATA;
 
-                const cellaCorrente = document.querySelector(`td[data-postazione="${postazione}"][data-slot="${slotCorrente}"]`);
-
-                // Controllo Pausa (visiva)
-                if (cellaCorrente && cellaCorrente.classList.contains('break-cell')) {
-                    // Salta l'intera pausa (12 slot) e continua l'allocazione dopo
-                    i += SLOTS_PAUSA_DURATA - 1; // -1 perché i++ verrà eseguito alla fine del ciclo
+                if (isBreakSlot) {
+                    slotCorrenteLocale += SLOTS_PAUSA_DURATA; 
                     continue; 
                 }
                 
-                // Controllo Sovrapposizione (dati)
-                const assegnazioneEsistente = datiAllocazione[postazione][slotCorrente];
-                if (assegnazioneEsistente) {
-                     alert(`Impossibile allocare l'intero Task per sovrapposizione con: ${assegnazioneEsistente.name}`);
+                // ALLOCAZIONE
+                if (datiGiorno[slotCorrenteLocale]) {
+                     alert(`Impossibile allocare l'intero Task. Sovrapposizione al giorno ${dataCorrenteStringa} con: ${datiGiorno[slotCorrenteLocale].name}`);
                     return; 
                 }
 
-
-                // Allocazione Dati
-                datiAllocazione[postazione][slotCorrente] = { 
+                // Assegnazione dei dati
+                datiGiorno[slotCorrenteLocale] = { 
                     name: taskName, 
                     class: taskClass, 
-                    // Tempo totale salvato SOLO sul primo slot
                     tempo: (slotsAllocati === 0) ? tempo : null 
                 };
                 dataChanged = true;
                 
-                // Aggiornamento Visivo
-                aggiornaCellaVisiva(postazione, slotCorrente, taskName, taskClass);
+                // Aggiornamento Visivo (Solo se la cella è visibile)
+                if (currentDayIndex === currentPage) {
+                    aggiornaCellaVisiva(postazione, dataCorrenteStringa, slotCorrenteLocale, taskName, taskClass);
+                }
                 
+                // Avanzamento
                 slotsAllocati++;
+                slotCorrenteLocale++;
             }
             
             if (dataChanged) salvaAllocazione();
         }
 
-        // --- INIZIALIZZAZIONE COMPLETA ---
+
+        // -------------------------------------------------------------------
+        // --- INIZIALIZZAZIONE ---
+        // -------------------------------------------------------------------
+
         document.addEventListener('DOMContentLoaded', () => {
-            caricaDatiMaster(); // Carica dati master e allocazioni salvate
-            generaBottoniFasi(); // Genera i bottoni e imposta la prima selezione
-            generaGrigliePaginazione(); // Genera la griglia con i dati caricati
+            mappaGiorniLavorativi(); 
+            caricaDatiMaster(); 
+            generaBottoniFasi(); 
+            // 🛑 L'inizializzazione non popola più i dati, solo la struttura HTML
+            generaGrigliePaginazione(); 
             
-            document.getElementById('prev-page').addEventListener('click', () => {
-                if (currentPage > 0) mostraPagina(currentPage - 1);
-            });
-            document.getElementById('next-page').addEventListener('click', () => {
-                if (currentPage < NUMERO_PAGINE - 1) mostraPagina(currentPage + 1);
-            });
+            document.getElementById('prev-page').addEventListener('click', () => mostraPagina(currentPage - 1));
+            document.getElementById('next-page').addEventListener('click', () => mostraPagina(currentPage + 1));
+            document.getElementById('search-button').addEventListener('click', cercaGiorno);
             
             document.getElementById('btn_torna_al_registro').addEventListener('click', () => {
-                // Sostituire con il nome file corretto del Programma 1
-                // Assicurati che il Programma 1 si chiami 'registro_fasi_master.html'
-                window.location.href = 'index.html'; 
+                window.location.href = 'registro_fasi_master.html'; 
             });
 
             mostraPagina(currentPage); 
